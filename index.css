@@ -1,0 +1,573 @@
+/* --- EDIT PAGE STYLES --- */
+@import url('https://fonts.googleapis.com/css2?family=Barrio&family=Borel&family=Gotu&family=Lora:ital,wght@0,400;0,700;1,400&family=Miniver&family=Noto+Serif+Display&family=Pinyon+Script&family=Silkscreen&family=Space+Mono&family=VT323&family=Work+Sans:wght@400;700&display=swap');
+/* Górny pasek z przyciskami */
+.edit-controls {
+  display: flex;
+  justify-content: flex-end; /* Przyciski do prawej */
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+
+.btn-outline {
+  background: white;
+  border: 2px solid black;
+  font-family: inherit;
+  font-weight: bold;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  height:60px;
+  padding: 0px 30px 0px 30px;
+}
+
+.btn-outline:hover {
+  background: black;
+}
+
+/* Czarny pasek z linkiem */
+.link-bar {
+  background: black;
+  color: white;
+  padding: 15px 20px;
+  font-size: 1.2rem;
+  margin-bottom: 30px;
+  word-break: break-all; 
+}
+
+/* Siatka edycji */
+.edit-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* 4 kolumny jak w projekcie */
+  gap: 15px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Pojedyncza komórka w edytorze (bazowy styl) */
+.edit-cell {
+  aspect-ratio: 1;
+  border: 3px solid black; /* Gruby obrys z projektu */
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+}
+
+/* Styl "chipa" w środku (empty) */
+.status-chip {
+  border: 2px solid black;
+  border-radius: 20px;
+  padding: 4px 16px;
+  font-size: 0.9rem;
+  background: white;
+}
+
+/* --- THEME STYLES FOR EDITOR --- */
+/* Te klasy będą nakładane na .edit-cell w zależności od wybranego motywu */
+
+/* Theme 1: Red Elegant (tymczasowy kolor) */
+.theme-elegant .edit-cell {
+  background-color: #3a0000; /* Ciemna czerwień z projektu */
+  border: 2px solid #d4af37; /* Złoty obrys */
+}
+.theme-elegant .status-chip {
+  background: transparent;
+  color: #d4af37;
+  border-color: #d4af37;
+}
+
+/* Theme 2: Pixel (tymczasowy styl) */
+.theme-pixel .edit-cell {
+  background-color: white;
+  border: 4px dotted black; /* Symulacja pikseli */
+}
+
+/* Theme 3: Gifts (tymczasowy styl) */
+.theme-gifts .edit-cell {
+  /* Docelowo tutaj będzie: background-image: url('/twoj-obrazek-prezentu.png'); */
+  background-color: #f0e68c; /* Kolor khaki z projektu */
+  border: none;
+}
+
+/* --- MODAL WYBORU MOTYWU --- */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+}
+
+.theme-modal {
+  background: white;
+  padding: 2rem;
+  border: 3px solid black;
+  text-align: center;
+}
+
+.theme-options {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.theme-option {
+  width: 80px;
+  height: 80px;
+  border: 2px solid black;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.theme-option.selected {
+  border: 4px solid black;
+  font-weight: bold;
+}
+
+/* src/index.css */
+:root {
+  --bg-color: #ffffff;
+  --text-color: #000000;
+  --border-color: #000000;
+  --font-main: 'Helvetica', 'Arial', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-main);
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Przycisk "create" (czarny blok) */
+.btn-black {
+  background-color: black;
+  color: white;
+  border: none;
+  padding:20px 30px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  width: 100%;
+  max-width: 300px; /* Ograniczenie szerokości */
+  display: block;
+  margin: 1rem auto;
+  font-family: inherit;
+  margin-top:0px;
+}
+
+.btn-black:hover {
+  opacity: 0.9;
+}
+
+input, textarea, select {
+  width: 100%;
+  border: 2px solid black;
+  padding: 10px;
+  font-size: 1rem;
+  font-family: inherit;
+  background: white;
+  margin-bottom: 1.5rem;
+  display: block;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+}
+
+/* Layout kontenera */
+.page-container {
+  max-width: 600px; /* Wąski layout jak na telefonie/figmie */
+  margin: 0 auto;
+  padding: 20px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- VISUAL EDITOR STYLES --- */
+
+.editor-layout {
+  display: flex;
+  gap: 20px;
+  min-height: 60vh;
+  margin-top: 20px;
+}
+
+/* Lewy panel (narzędzia) */
+.editor-sidebar {
+  flex: 1;
+  border: 2px solid black;
+  background: white;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-tabs {
+  display: flex;
+  border-bottom: 2px solid black;
+}
+
+.editor-tab {
+  flex: 1;
+  padding: 10px;
+  text-align: center;
+  cursor: pointer;
+  border-right: 2px solid black;
+  font-weight: bold;
+}
+.editor-tab:last-child { border-right: none; }
+.editor-tab.active { background: black; color: white; }
+
+.editor-tools-content {
+  padding: 15px;
+  overflow-y: auto;
+  max-height: 500px;
+}
+
+/* Grid dla miniaturek */
+.assets-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.asset-item {
+  border: 1px solid #ccc;
+  cursor: pointer;
+  aspect-ratio: 1;
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  padding: 5px;
+}
+.asset-item:hover { border-color: black; }
+.asset-item img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+/* Prawy panel (Canvas / Podgląd) */
+.editor-canvas-area {
+  flex: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f4f4f4; /* Szare tło robocze */
+  border: 2px solid black;
+  padding: 20px;
+}
+
+/* Właściwe "okienko" */
+.canvas-preview {
+  width: 350px;
+  height: 350px;
+  background-color: white;
+  border: 2px dashed black;
+  position: relative;
+  overflow: hidden; /* Żeby naklejki nie wystawały */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Elementy na canvasie */
+.canvas-sticker {
+  position: absolute;
+  width: 60px; /* Domyślny rozmiar naklejki */
+  cursor: grab;
+  /* Prosty trick na wyśrodkowanie przy dodaniu, 
+     w pełnej wersji można dodać drag&drop */
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%); 
+}
+
+.canvas-text {
+  z-index: 10;
+  text-align: center;
+  padding: 10px;
+  background: rgba(255,255,255,0.7);
+  max-width: 90%;
+  font-size: 1.1rem;
+}
+
+/* --- CANVAS ELEMENT STYLES --- */
+
+/* Element na płótnie (wspólne style) */
+.canvas-element {
+  position: absolute;
+  cursor: grab;
+  user-select: none; /* Żeby tekst się nie zaznaczał przy przesuwaniu */
+  transform: translate(-50%, -50%); /* Centrowanie względem punktu X,Y */
+}
+.canvas-element:active {
+  cursor: grabbing;
+}
+
+/* Wybrany element (niebieska ramka jak na screenshocie) */
+.canvas-element.selected {
+  outline: 2px solid #2b6cb0; /* Niebieski kolor selekcji */
+}
+
+/* Toolbar nad wybranym elementem */
+.element-toolbar {
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border: 2px solid black;
+  padding: 5px;
+  display: flex;
+  gap: 5px;
+  z-index: 100;
+  white-space: nowrap;
+}
+
+/* Tekst na canvasie */
+.element-text {
+  min-width: 100px;
+  text-align: center;
+  padding: 5px;
+  font-family: 'Arial', sans-serif; /* Lub Twój font */
+}
+.element-text:focus {
+  outline: none;
+  background: rgba(255,255,255,0.5);
+}
+
+/* Przycisk Linku na canvasie */
+.element-button {
+  background: white;
+  border: 1px solid black;
+  padding: 8px 16px;
+  border-radius: 30px;
+  font-weight: bold;
+  text-decoration: none;
+  color: black;
+  display: inline-block;
+  pointer-events: none; /* W edytorze nie chcemy w niego klikać */
+}
+
+/* --- MODAL LINKU (Brutalist Style) --- */
+.link-modal {
+  background: white;
+  border: 3px solid black;
+  padding: 20px;
+  width: 400px;
+  max-width: 90%;
+}
+.link-modal h3 { margin-top: 0; font-family: cursive; font-size: 1.5rem; }
+.link-modal input { margin-bottom: 15px; }
+
+.text-toolbar {
+  position: absolute;
+  top: -60px; /* Wyżej, żeby zmieścił się dropdown */
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border: 2px solid black;
+  padding: 8px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  z-index: 1000;
+  box-shadow: 4px 4px 0px rgba(0,0,0,0.2);
+  white-space: nowrap;
+}
+
+/* Dropdown czcionek */
+.font-select {
+  border: 2px solid black;
+  background: white;
+  padding: 5px;
+  font-family: 'Work Sans', sans-serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+  width: 130px;
+}
+
+/* Przyciski formatowania (B, I, Kosz) */
+.format-btn {
+  width: 35px; 
+  height: 30px;
+  border: 0px solid black;
+  background: white;
+  cursor: pointer;
+  font-weight: bold;
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+}
+.format-btn:hover { background: #eee; }
+.format-btn.active { background: black; color: white; }
+.format-btn.delete { background: transparent; color: black; width:60px; }
+
+
+.color-wrapper {
+  width: 30px; 
+  height: 30px;
+  border: 2px solid black;
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+}
+.color-input {
+  position: absolute;
+  top: -50%; left: -50%;
+  width: 200%; height: 200%;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+}
+
+/* --- STYL ELEMENTU I TRANSFORMACJI --- */
+
+/* Element na płótnie */
+.canvas-element {
+  position: absolute;
+  cursor: grab;
+  user-select: none;
+  /* Centrowanie jest kluczowe dla obrotu wokół własnej osi */
+  transform-origin: center center; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.canvas-element:active { cursor: grabbing; }
+
+/* Ramka zaznaczenia (widoczna po kliknięciu) */
+.selection-box {
+  position: absolute;
+  top: -5px; left: -5px; right: -5px; bottom: -5px;
+  border: 2px dashed #2b6cb0;
+  pointer-events: none; /* Żeby kliknięcia przechodziły do elementu */
+}
+
+/* Uchwyt do skalowania (prawy dolny róg) */
+.resize-handle {
+  position: absolute;
+  bottom: -10px;
+  right: -10px;
+  width: 15px;
+  height: 15px;
+  background: white;
+  border: 2px solid #2b6cb0;
+  border-radius: 50%;
+  cursor: nwse-resize;
+  pointer-events: auto; /* Musi łapać myszkę */
+  z-index: 20;
+}
+
+
+.rotate-handle {
+  position: absolute;
+  top: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 15px;
+  height: 15px;
+  background: #2b6cb0;
+  border-radius: 50%;
+  cursor: grab;
+  pointer-events: auto;
+  z-index: 20;
+}
+.rotate-handle::after {
+  content: '';
+  position: absolute;
+  top: 15px; left: 6px;
+  width: 2px; height: 10px;
+  background: #2b6cb0;
+}
+
+.element-toolbar {
+  position: absolute;
+  top: -80px; 
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border: 2px solid black;
+  padding: 5px;
+  display: flex;
+  gap: 5px;
+  z-index: 100;
+  white-space: nowrap;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+/* --- ANIMACJE HOME --- */
+@keyframes wiggle {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(-5deg) scale(1.1); }
+  75% { transform: rotate(5deg) scale(1.1); }
+  100% { transform: rotate(0deg); }
+}
+
+.hover-wiggle {
+  transition: transform 0.3s ease;
+  cursor: pointer;
+}
+.hover-wiggle:hover {
+  animation: wiggle 0.5s infinite;
+}
+
+.hover-pop {
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  cursor: pointer;
+}
+.hover-pop:hover {
+  transform: scale(1.1) rotate(2deg);
+}
+
+.grid-window {
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.grid-window:hover {
+  transform: scale(1.1);
+  z-index: 10;
+  background-color: #fff;
+  color: #fff; 
+}
+
+.surprise-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  animation: fadeIn 0.3s;
+}
+
+.surprise-box {
+  background: white;
+  border: 2px solid black;
+  padding: 2rem;
+  max-width: 400px;
+  text-align: center;
+  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes popIn { from { transform: scale(0.8); } to { transform: scale(1); } }
