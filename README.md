@@ -5,8 +5,6 @@
 **Create personalized, interactive digital advent calendars for your loved ones.**
 *No tracking, no ads, just vibes.*
 
-[**Live Demo**](https://twoja-strona.vercel.app) · [**Report Bug**](https://github.com/twoj-login/repo/issues) · [**Request Feature**](https://github.com/twoj-login/repo/issues)
-
 ---
 
 ## ABOOUT ⋆.˚𖦹⋆✮⋆.˚
@@ -23,6 +21,14 @@ The calendar respects the recipient's timezone, ensuring doors only open when th
 * **Dynamic Themes**: Switch between *Classic*, *Elegant*, and *Gifts* themes instantly.
 * **Secure Sharing**: View-only public links for recipients and token-protected edit links for creators.
 * **Firebase Backend**: Real-time data saving and retrieval.
+
+<img width="634" height="957" alt="image" src="https://github.com/user-attachments/assets/63475f8e-26c6-4679-bcb0-a580770a126c" />
+<img width="668" height="951" alt="image" src="https://github.com/user-attachments/assets/fded9289-4493-4153-a89d-42ff58d0c5f5" />
+<img width="499" height="618" alt="image" src="https://github.com/user-attachments/assets/52c974cb-6328-40cb-bca3-0e33f0316961" />
+<img width="632" height="946" alt="image" src="https://github.com/user-attachments/assets/af4dd181-055a-4a9c-a7e9-b0629929bfe9" />
+<img width="632" height="946" alt="image" src="https://github.com/user-attachments/assets/82cf1581-c5a5-496d-b134-ec8eae330ad7" />
+
+
 
 ## BUILT WITH ᯓ★
 
