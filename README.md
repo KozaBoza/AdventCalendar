@@ -21,6 +21,7 @@ The calendar respects the recipient's timezone, ensuring doors only open when th
 * **Dynamic Themes**: Switch between *Classic*, *Elegant*, and *Gifts* themes instantly.
 * **Secure Sharing**: View-only public links for recipients and token-protected edit links for creators.
 * **Firebase Backend**: Real-time data saving and retrieval.
+  
 <div>
 <img size="10%" alt="image" src="https://github.com/user-attachments/assets/63475f8e-26c6-4679-bcb0-a580770a126c" />
 <img alt="image" src="https://github.com/user-attachments/assets/fded9289-4493-4153-a89d-42ff58d0c5f5" />
