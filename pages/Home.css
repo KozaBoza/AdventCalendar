@@ -1,0 +1,150 @@
+.landing-page,
+.about-page {
+  --ink: #1d1d1d;
+  --paper: #fff;
+  --mist: #f1f0ed;
+  color: var(--ink);
+  min-height: 100vh;
+  min-height: 100svh;
+  padding: 22px clamp(22px, 4vw, 66px) 18px;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+}
+
+/* ---------- header: link + logo po prawej ---------- */
+.landing-header,
+.about-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  letter-spacing: -0.02em;
+}
+.landing-header { justify-content: flex-end; gap: 18px; }
+
+.about-link,
+.back-link,
+.logo-placeholder,
+.primary-action,
+.calendar-window {
+  transition: opacity 200ms ease;
+}
+.about-link:hover,
+.back-link:hover,
+.logo-placeholder:hover { opacity: .55; }
+
+.logo-placeholder {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: block;
+  background: var(--ink);
+}
+
+.eyebrow { margin: 0 0 13px; font-size: 10px; color: #65635f; }
+
+/* ---------- strona główna ---------- */
+.landing-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 40px 0;
+}
+
+.window-scroller {
+  width: min(100%, 520px);
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;               /* natywny scrollbar ukryty – zastępuje go kropka */
+}
+.window-scroller::-webkit-scrollbar { display: none; }
+.window-scroller:focus-visible { outline: 1px solid var(--ink); outline-offset: 6px; }
+
+.calendar-window {
+  flex: 0 0 auto;
+  width: clamp(110px, 14vw, 200px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--mist);
+  scroll-snap-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #77746d;
+}
+/* "wypełnione" okienko: subtelnie wyraźniejsze, bez ruchu */
+.calendar-window.is-filled { background: #e7e5e0; }
+.calendar-window:hover { opacity: .6; }
+
+/* kropka = horizontal scrollbar */
+.scroll-track {
+  position: relative;
+  width: 72px;
+  height: 14px;
+  cursor: pointer;
+}
+.scroll-dot {
+  position: absolute;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ink);
+  transform: translate(-50%, -50%);
+}
+
+.primary-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 8px 15px;
+  color: #fff;
+  background: var(--ink);
+  border-radius: 999px;
+  font-size: 9px;
+}
+.primary-action:hover { opacity: .75; }
+
+/* ---------- footer ---------- */
+.landing-footer,
+.about-footer {
+  margin-top: auto;
+  padding-top: 24px;
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+  font-size: 9px;
+  color: #625f59;
+}
+/* na desktopie tylko "created by", rok pojawia się na mobile */
+.landing-footer span:last-child,
+.about-footer span:last-child { display: none; }
+
+@media (max-width: 640px) {
+  .landing-page,
+  .about-page { padding: 20px 16px 14px; }
+  .logo-placeholder { width: 31px; height: 31px; }
+
+  .landing-stage { gap: 24px; }
+  .window-scroller {
+    width: calc(100% + 32px);           /* full-bleed: wychodzi poza padding strony */
+    margin-inline: -16px;
+    gap: 6px;
+  }
+  .calendar-window { width: 56vw; }
+
+  .landing-footer,
+  .about-footer { justify-content: space-between; }
+  .landing-footer span:last-child,
+  .about-footer span:last-child { display: inline; }
+}

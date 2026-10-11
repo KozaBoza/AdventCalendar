@@ -1,98 +1,114 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { collection, addDoc } from 'firebase/firestore';
-import { db } from '../firebase';
 import { useNavigate } from 'react-router-dom';
+import { db } from '../firebase';
+import { useSettings } from '../lib/settings';
+import { browserTimezone } from '../lib/timezones';
+import { DEFAULT_THEME } from '../lib/themes';
+import { shake } from '../lib/ui';
+import { AppBar, Footer, IconButton, Logo, Toggles } from '../components/Chrome';
+import Field from '../components/Field';
+import TimezoneSelect from '../components/TimezoneSelect';
+import '../styles/pages.css';
+
+const makeToken = () => {
+  if (crypto?.randomUUID) return crypto.randomUUID().replace(/-/g, '');
+  return Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+};
 
 const Create = () => {
   const navigate = useNavigate();
-  
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
+  const { t, notify } = useSettings();
+  const titleRef = useRef(null);
+
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [timezone, setTimezone] = useState(browserTimezone());
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [days] = useState(Array(24).fill(""));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
 
-    // 1. Generujemy losowy token (hasło do edycji)
-    const editToken = Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
+    const cleanTitle = title.trim();
+    if (!cleanTitle) {
+      setErrors({ title: t('errTitle') });
+      titleRef.current?.focus();
+      shake(titleRef.current);
+      return;
+    }
+
+    setLoading(true);
+    const editToken = makeToken();
 
     try {
-      const docRef = await addDoc(collection(db, "calendars"), {
-        title,
-        description,
+      const docRef = await addDoc(collection(db, 'calendars'), {
+        title: cleanTitle,
+        description: description.trim(),
         timezone,
-        days,
+        days: Array(24).fill(''),
         createdAt: new Date(),
         year: new Date().getFullYear(),
-        theme: 'classic',
-        // 2. Zapisujemy token w bazie (ważne!)
-        editToken: editToken 
+        theme: DEFAULT_THEME,
+        editToken,
       });
-      
-      // 3. Przekierowujemy do edycji, dodając token do paska adresu
-      navigate(`/edit/${docRef.id}?token=${editToken}`);
-      
+      // state.justCreated → strona edycji od razu pokaże tajny link
+      navigate(`/edit/${docRef.id}?token=${editToken}`, { state: { justCreated: true } });
     } catch (error) {
-      console.error("Error:", error);
-      alert("Błąd. Sprawdź konsolę.");
-    } finally {
+      console.error('Error:', error);
+      notify(t('createError'));
       setLoading(false);
     }
   };
+
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'center',
-      padding: '20px'
-    }}>
-      {/* Container z ramką */}
-      <div style={{ 
-        border: '2px solid black', 
-        padding: '2rem', 
-        width: '100%', 
-        maxWidth: '400px',
-        backgroundColor: 'white'
-      }}>
-        <form onSubmit={handleSubmit}>
-          
-          <label>title</label>
-          <input 
-            type="text" 
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-          />
+    <main className="page">
+      <AppBar
+        left={<IconButton icon="arrowLeft" label={t('back')} onClick={() => navigate('/')} />}
+        title={t('appName')}
+      >
+        <Toggles />
+        <Logo />
+      </AppBar>
 
-          <label>description</label>
-          <textarea 
-            rows={6}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
+      <div className="create-wrap">
+        <form className="card" onSubmit={handleSubmit} noValidate>
+          <h2>{t('newCalendar')}</h2>
 
-          <label>timezone</label>
-          <select 
-            value={timezone}
-            onChange={(e) => setTimezone(e.target.value)}
-            style={{ marginBottom: '3rem' }} // Odstęp nad przyciskiem
-          >
-            <option value="Europe/Warsaw">Europe/Warsaw</option>
-            <option value="Europe/London">Europe/London</option>
-            <option value="America/New_York">America/New York</option>
-          </select>
+          <Field id="c-title" label={t('fTitle')} required error={errors.title}>
+            {(p) => (
+              <input
+                {...p}
+                ref={titleRef}
+                type="text"
+                maxLength={60}
+                value={title}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  if (errors.title) setErrors({});
+                }}
+              />
+            )}
+          </Field>
 
-          <button type="submit" className="btn-black" disabled={loading}>
-            {loading ? "creating..." : "create"}
+          <Field id="c-desc" label={t('fDescription')}>
+            {(p) => (
+              <textarea {...p} rows={5} maxLength={400} value={description} onChange={(e) => setDescription(e.target.value)} />
+            )}
+          </Field>
+
+          <Field id="c-tz" label={t('fTimezone')}>
+            {(p) => <TimezoneSelect {...p} value={timezone} onChange={setTimezone} />}
+          </Field>
+
+          <button type="submit" className="btn is-solid" disabled={loading}>
+            {loading ? t('creating') : t('create')}
           </button>
-
         </form>
       </div>
-    </div>
+
+      <Footer />
+    </main>
   );
 };
 

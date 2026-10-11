@@ -1,0 +1,43 @@
+/* zawartość okienka – zawsze jasna "kartka", niezależnie od trybu aplikacji */
+.day-content {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #fff;
+  color: #000;
+  container-type: size;
+}
+.day-canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: top left;
+  background-color: #fff;
+  background-size: cover;
+  background-position: center;
+}
+.day-text {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 8cqw;
+  text-align: center;
+  font-size: max(9px, 6cqw);
+  line-height: 1.3;
+}
+
+.canvas-el { position: absolute; }
+.canvas-el img { width: 100%; display: block; }
+.canvas-text { white-space: nowrap; text-align: center; min-width: 20px; }
+.canvas-btn {
+  display: block;
+  padding: .6em 1.2em;
+  border-radius: 999px;
+  background: #000;
+  color: #fff;
+  white-space: nowrap;
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-weight: 300;
+  line-height: 1.1;
+}

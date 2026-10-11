@@ -1,350 +1,217 @@
-// src/pages/Edit.jsx
-import { useEffect, useState } from 'react';
-import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
+// src/pages/Edit.jsx – widok właściciela (/edit/:id?token=...)
+import { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+import { useSettings } from '../lib/settings';
+import { shake } from '../lib/ui';
+import { THEMES, getDoorSrc } from '../lib/themes';
+import { AppBar, Footer, IconButton, Logo, Toggles } from '../components/Chrome';
+import Windows from '../components/Windows';
+import Modal from '../components/Modal';
+import TimezoneSelect from '../components/TimezoneSelect';
+import '../styles/pages.css';
 
-// 1. IMPORT ZASOBÓW
-const doorImages = import.meta.glob('../assets/doors/*.png', { eager: true, import: 'default' });
+const isEmptyDay = (content) => {
+  if (!content) return true;
+  if (typeof content === 'string') return content.trim() === '';
+  if (typeof content === 'object' && content.type === 'canvas') {
+    return !content.background && !(content.elements || []).length;
+  }
+  return false;
+};
 
 const Edit = () => {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { t, view, toggleView, colorMode, notify } = useSettings();
+  const nameRef = useRef(null);
 
-  const [calendarData, setCalendarData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  
-  // STANY MODALI
-  const [showThemeModal, setShowThemeModal] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false); // NOWY STAN
-  
-  const [hoveredIndex, setHoveredIndex] = useState(null);
-
-  const urlToken = searchParams.get('token');
+  const token = searchParams.get('token');
   const publicLink = `${window.location.origin}/c/${id}`;
-  const editLink = `${window.location.origin}/edit/${id}?token=${urlToken}`;
+  const editLink = `${window.location.origin}/edit/${id}?token=${token}`;
 
-  // TWOJE USTAWIENIA MOTYWÓW
-  const themes = ['classic', 'elegant', 'gifts'];
-  
-  const themePrefixes = {
-    'classic': 'b',
-    'elegant': 'c',
-    'gifts': 'a',
-  };
+  const [calendar, setCalendar] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [name, setName] = useState('');
+  const [modal, setModal] = useState(location.state?.justCreated ? 'details' : null); // 'details' | 'theme' | 'share'
+  const [copied, setCopied] = useState(null);
+  const [nameError, setNameError] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
-    const fetchCalendar = async () => {
-      const docRef = doc(db, "calendars", id);
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        if (data.editToken && data.editToken !== urlToken) {
-           alert("Brak dostępu! Potrzebujesz linku z tokenem, aby edytować.");
-           navigate(`/c/${id}`);
-           return;
+    (async () => {
+      try {
+        const snap = await getDoc(doc(db, 'calendars', id));
+        if (snap.exists()) {
+          const data = snap.data();
+          if (data.editToken && data.editToken !== token) {
+            navigate(`/c/${id}`, { replace: true });
+            return;
+          }
+          setCalendar(data);
+          setName(data.title || '');
         }
-        setCalendarData(data);
-      } else {
-        alert("Nie znaleziono kalendarza!");
+      } catch (error) {
+        console.error('Error loading calendar:', error);
+        setLoadError(true);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    };
-    fetchCalendar();
-  }, [id, urlToken, navigate]);
+    })();
+  }, [id, token, navigate]);
 
-  const handleThemeChange = async (newTheme) => {
-    setCalendarData({ ...calendarData, theme: newTheme });
-    const docRef = doc(db, "calendars", id);
-    await updateDoc(docRef, { theme: newTheme });
-    setShowThemeModal(false);
+  // zapis z natychmiastową aktualizacją widoku; przy błędzie cofa zmianę i pokazuje komunikat
+  const patch = async (fields) => {
+    const previous = calendar;
+    setCalendar((c) => ({ ...c, ...fields }));
+    try {
+      await updateDoc(doc(db, 'calendars', id), fields);
+      return true;
+    } catch (error) {
+      console.error('Error saving:', error);
+      setCalendar(previous);
+      notify(t('errSave'));
+      return false;
+    }
   };
 
-  // 2. KULOODPORNE WYSZUKIWANIE OBRAZKA
-  const getDoorDetails = (theme, day) => {
-    const prefix = themePrefixes[theme] || 'a';
-    const fileName = `${prefix}${day}.png`; 
-
-    const foundKey = Object.keys(doorImages).find(key => {
-        const keyFileName = key.split('/').pop();
-        return keyFileName === fileName;
-    });
-
-    return { 
-      src: foundKey ? doorImages[foundKey] : null, 
-      fileName 
-    }; 
+  const commitName = async () => {
+    const clean = name.trim();
+    if (!clean) {
+      setNameError(true);
+      shake(nameRef.current);
+      return;
+    }
+    setNameError(false);
+    if (clean === calendar.title) { setName(clean); return; }
+    const ok = await patch({ title: clean });
+    if (ok) setName(clean); else setName(calendar.title || '');
   };
 
-  // Obsługa kopiowania w modalu Share
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(publicLink);
-    alert("Link copied to clipboard!");
+  const copy = async (text, key) => {
+    try { await navigator.clipboard.writeText(text); } catch { /* clipboard blocked */ }
+    setCopied(key);
+    setTimeout(() => setCopied(null), 1500);
   };
 
-  if (loading) return <div className="page-container">Loading...</div>;
-  if (!calendarData) return null;
+  if (loading) return <div className="center-msg">{t('loading')}</div>;
+  if (loadError) return <div className="center-msg">{t('errLoad')}</div>;
+  if (!calendar) return <div className="center-msg">{t('notFound')}</div>;
 
-  const currentTheme = calendarData.theme || 'classic';
+  const currentTheme = calendar.theme || 'classic';
 
   return (
-    <div className="page-container" style={{ paddingBottom: '100px' }}>
-      
-      <header style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3rem', fontSize: '1.2rem' }}>
-        <Link to="/" style={{ textDecoration: 'none' }}>natala tomala</Link>
-        <Link to="/#about" style={{ textDecoration: 'underline' }}>about</Link>
-      </header>
+    <main className="page">
+      <AppBar left={<Logo />} title={t('appName')}>
+        <Toggles />
+        <IconButton solid icon="plus" label={t('newCalendar')} onClick={() => navigate('/create')} />
+      </AppBar>
 
-      <div className="edit-controls" style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '2rem' }}>
-        <button className="btn-outline" onClick={() => setShowThemeModal(true)}>theme</button>
-        <button className="btn-outline" onClick={() => setShowPreview(true)}>preview</button>
-        
-        {/* ZMIANA: Przycisk otwiera modal Share */}
-        <button className="btn-outline" onClick={() => setShowShareModal(true)}>share</button>
+      <div className="cal-toolbar-wrap">
+        <div className="cal-toolbar">
+          <IconButton large solid icon="info" label={t('details')} onClick={() => setModal('details')} />
+          <input
+            ref={nameRef}
+            className="cal-name"
+            value={name}
+            maxLength={60}
+            placeholder={t('calendarName')}
+            aria-label={t('calendarName')}
+            aria-invalid={nameError ? true : undefined}
+            aria-describedby={nameError ? 'cal-name-err' : undefined}
+            onChange={(e) => { setName(e.target.value); if (nameError) setNameError(false); }}
+            onBlur={commitName}
+            onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+          />
+          <IconButton
+            large
+            icon={view === 'grid' ? 'columns' : 'grid'}
+            label={view === 'grid' ? t('viewToScroll') : t('viewToGrid')}
+            onClick={toggleView}
+          />
+          <IconButton large icon="palette" label={t('theme')} onClick={() => setModal('theme')} />
+          <IconButton large icon="share" label={t('share')} onClick={() => setModal('share')} />
+        </div>
+        {nameError && <p className="field-error" id="cal-name-err" role="alert">{t('errName')}</p>}
       </div>
 
-      <div style={{ marginBottom: '2rem' }}>
-         <label style={{ fontSize: '0.9rem', fontWeight: 'bold', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>
-              Save this link to edit later (keep it secret):
-         </label>
-         <div className="link-bar" style={{ 
-             display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-             width: '100%', maxWidth: '600px', margin: '0 auto', border: '1px solid black', padding: '5px' 
-         }}>
-            <span style={{ fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '10px' }}>
-              {editLink}
-            </span>
-            <button 
-              onClick={() => {
-                navigator.clipboard.writeText(editLink);
-                alert("Secret edit link copied!");
-              }}
-              style={{background: 'black', color: 'white', border: 'none', padding: '5px 10px', cursor: 'pointer', height: '30px', width: '80px', fontWeight: 'bold'}}
-            >
-              COPY
-            </button>
-         </div>
+      <div className="cal-body">
+        <Windows
+          key={view}
+          theme={currentTheme}
+          mode={view}
+          count={calendar.days.length}
+          dimmed={(i) => isEmptyDay(calendar.days[i])}
+          onSelect={(i) => navigate(`/edit/${id}/door/${i + 1}?token=${token}`)}
+        />
       </div>
 
-      {/* 3. GRID */}
-      <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)', 
-          gap: '15px',
-          width: '100%',
-          maxWidth: '600px',
-          margin: '0 auto'
-      }}>
-        {calendarData.days.map((content, index) => {
-          const dayNumber = index + 1;
-          const isEmpty = !content || (typeof content === 'string' && content.trim() === "");
-          
-          const { src, fileName } = getDoorDetails(currentTheme, dayNumber);
-          const isHovered = hoveredIndex === index;
+      <Footer />
 
-          return (
-            <div 
-              key={index} 
-              onMouseEnter={() => setHoveredIndex(index)}
-              onMouseLeave={() => setHoveredIndex(null)}
-              onClick={() => {
-                navigate(`/edit/${id}/door/${dayNumber}?token=${urlToken}`);
-              }}
-              style={{
-                width: '100%',
-                aspectRatio: '1/1', 
-                position: 'relative',
-                cursor: 'pointer',
-                
-                backgroundImage: src ? `url("${src}")` : 'none',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                
-                backgroundColor: src ? 'transparent' : '#ffebee', 
-                border: src ? 'none' : '2px dashed red',
-                
-                opacity: isEmpty ? (isHovered ? 0.9 : 0.5) : 1, 
-                transform: isHovered ? 'scale(1.05)' : 'scale(1)',
-                zIndex: isHovered ? 10 : 1,
-                transition: 'opacity 0.3s ease, transform 0.3s ease',
-                boxShadow: isHovered ? '0 10px 20px rgba(0,0,0,0.2)' : 'none'
-              }}
-            >
-              {!src && (
-                <div style={{
-                  position: 'absolute', top: '50%', left: '50%', 
-                  transform: 'translate(-50%, -50%)', 
-                  fontSize: '10px', color: 'red', textAlign: 'center', 
-                  wordBreak: 'break-all', lineHeight: '1.2'
-                }}>
-                  NO: <br/>{fileName}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* --- MODAL THEME --- */}
-      {showThemeModal && (
-        <div className="modal-overlay" onClick={() => setShowThemeModal(false)}>
-          <div className="theme-modal" onClick={e => e.stopPropagation()}>
-            <h3>CHOOSE THEME</h3>
-            <div className="theme-options">
-              {themes.map(themeName => {
-                  const { src } = getDoorDetails(themeName, 1);
-                  return (
-                    <div 
-                      key={themeName}
-                      className={`theme-option ${currentTheme === themeName ? 'selected' : ''}`}
-                      onClick={() => handleThemeChange(themeName)}
-                      style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', color:'black', borderColor:'white'}}
-                    >
-                      {src ? (
-                          <img 
-                            src={src} 
-                            alt={themeName} 
-                            style={{width: '60px', height: '80px', objectFit: 'cover', borderRadius: '0px', color:'white'}} 
-                          />
-                      ) : (
-                         <div style={{width:'60px', height:'80px', background:'#eee', fontSize:'10px'}}>NO IMG</div>
-                      )}
-                      <span>{themeName}</span>
-                    </div>
-                  );
-              })}
-            </div>
-            <button className="btn-black" style={{marginTop: '1rem', width:'10rem'}} onClick={() => setShowThemeModal(false)}>
-              close
+      {modal === 'details' && (
+        <Modal title={t('details')} onClose={() => setModal(null)}>
+          <div className="field">
+            <label htmlFor="e-desc">{t('fDescription')}</label>
+            <textarea
+              id="e-desc"
+              rows={4}
+              defaultValue={calendar.description || ''}
+              onBlur={(e) => { if (e.target.value !== (calendar.description || '')) patch({ description: e.target.value }); }}
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="e-tz">{t('fTimezone')}</label>
+            <TimezoneSelect id="e-tz" value={calendar.timezone || 'UTC'} onChange={(tz) => patch({ timezone: tz })} />
+          </div>
+          <p>{t('editLinkLabel')}</p>
+          <div className="link-row">
+            <span>{editLink}</span>
+            <button type="button" className="btn is-solid" onClick={() => copy(editLink, 'edit')}>
+              {copied === 'edit' ? t('copied') : t('copyLink')}
             </button>
           </div>
-        </div>
+        </Modal>
       )}
 
-      {/* --- MODAL SHARE (NOWY) --- */}
-      {showShareModal && (
-        <div className="modal-overlay" onClick={() => setShowShareModal(false)} style={{backdropFilter: 'blur(5px)', backgroundColor: 'rgba(0,0,0,0.4)'}}>
-          <div 
-             onClick={e => e.stopPropagation()} 
-             style={{
-                 backgroundColor: 'white', 
-                 padding: '30px', 
-                 borderRadius: '15px', 
-                 width: '100%', 
-                 maxWidth: '500px',
-                 position: 'relative',
-                 boxShadow: '0 10px 40px rgba(0,0,0,0.2)'
-             }}
-          >
-
-             <button 
-                onClick={() => setShowShareModal(false)}
-                style={{
-                    position: 'absolute', top: '15px', right: '15px',
-                    background: 'none', border: 'none', 
-                    fontSize: '1.5rem', cursor: 'pointer', fontWeight: 'bold'
-                }}
-             >
-                 ×
-             </button>
-
-             <h2 style={{marginTop: 0, marginBottom: '10px', fontSize: '1.5rem'}}>SHAARE :3 </h2>
-             <p style={{color: '#666', marginBottom: '30px', lineHeight: '1.4'}}>
-                 This is a view-only link. Share it with your loved one so they can open the doors!
-             </p>
-
-             <div style={{display: 'flex', gap: '15px'}}>
-                 <a 
-                    href={publicLink} 
-                    target="_blank" 
-                    rel="noreferrer"
-                    style={{
-                        flex: 1,
-                        padding: '12px',
-                        textAlign: 'center',
-                        textDecoration: 'none',
-                        border: '2px solid black',
-                        borderRadius: '8px',
-                        color: 'black',
-                        fontWeight: 'bold',
-                        cursor: 'pointer',
-                        fontSize: '1rem'
-                    }}
-                 >
-                     opeeen
-                 </a>
-
-                 <button 
-                    onClick={handleCopyLink}
-                    style={{
-                        flex: 1,
-                        padding: '12px',
-                        border: '2px solid black',
-                        borderRadius: '8px',
-                        backgroundColor: 'black',
-                        color: 'white',
-                        fontWeight: 'bold',
-                        cursor: 'pointer',
-                        fontSize: '1rem'
-                    }}
-                 >
-                     coopy link
-                 </button>
-             </div>
+      {modal === 'theme' && (
+        <Modal title={t('chooseTheme')} onClose={() => setModal(null)}>
+          <div className="theme-grid">
+            {THEMES.map((th) => {
+              const src = getDoorSrc(th.id, 1, colorMode);
+              return (
+                <button
+                  key={th.id}
+                  type="button"
+                  className={`theme-opt${currentTheme === th.id ? ' is-selected' : ''}`}
+                  onClick={() => { patch({ theme: th.id }); setModal(null); }}
+                >
+                  {src
+                    ? <img className="swatch" src={src} alt="" style={{ objectFit: 'contain' }} />
+                    : <span className="swatch" aria-hidden="true" />}
+                  <span>{th.id}</span>
+                </button>
+              );
+            })}
           </div>
-        </div>
+        </Modal>
       )}
 
-      {/* --- MODAL PREVIEW --- */}
-      {showPreview && (
-        <div className="modal-overlay" onClick={() => setShowPreview(false)} style={{backdropFilter: 'blur(8px)', backgroundColor: 'rgba(0,0,0,0.6)'}}>
-          <div onClick={e => e.stopPropagation()} style={{position: 'relative'}}>
-             
-             <div style={{
-                 width: '390px', 
-                 height: '844px', 
-                 maxHeight: '90vh', 
-                 backgroundColor: '#fff',
-                 borderRadius: '40px', 
-                 border: '14px solid #1c1c1e', 
-                 overflow: 'hidden',
-                 position: 'relative',
-                 boxShadow: '0 30px 60px rgba(0,0,0,0.4)'
-             }}>
-                 <div style={{
-                     position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
-                     width: '160px', height: '30px', backgroundColor: '#1c1c1e',
-                     borderBottomLeftRadius: '20px', borderBottomRightRadius: '20px', zIndex: 20
-                 }}></div>
-
-                 <div style={{height: '44px', background: '#fff', width: '100%', position: 'absolute', top: 0, left: 0, zIndex: 10}}></div>
-                 
-                 <button 
-                    onClick={() => setShowPreview(false)}
-                    style={{
-                        position: 'absolute', top: '10px', right: '20px', zIndex: 30,
-                        background: 'transparent', border: 'none', fontSize: '1.5rem', fontWeight: 'bold', color: '#000', cursor: 'pointer', padding: '5px'
-                    }}
-                 >
-                     ×
-                 </button>
-
-                 <iframe 
-                    src={publicLink} 
-                    title="Mobile Preview"
-                    style={{
-                        width: '100%', height: '100%', border: 'none', paddingTop: '44px' 
-                    }}
-                 />
-             </div>
+      {modal === 'share' && (
+        <Modal title={t('share')} onClose={() => setModal(null)}>
+          <p>{t('shareText')}</p>
+          <div className="link-row"><span>{publicLink}</span></div>
+          <div className="dlg-actions">
+            <a className="btn" href={publicLink} target="_blank" rel="noreferrer">{t('open')}</a>
+            <button type="button" className="btn is-solid" onClick={() => copy(publicLink, 'public')}>
+              {copied === 'public' ? t('copied') : t('copyLink')}
+            </button>
           </div>
-        </div>
+        </Modal>
       )}
-
-    </div>
+    </main>
   );
 };
 

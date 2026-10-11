@@ -1,0 +1,85 @@
+.back-link { font-size: 12px; line-height: 1; }
+
+/* desktop: about nad faq, wszystko wyśrodkowane */
+.about-layout {
+  flex: 1;
+  width: min(100%, 560px);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(48px, 9vh, 96px);
+  padding: 40px 0;
+}
+.about-section { width: 100%; }
+
+.about-copy {
+  display: grid;
+  grid-template-columns: 145px 1fr;
+  align-items: center;
+  gap: clamp(28px, 4vw, 48px);
+}
+.about-orb {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--mist);
+}
+.about-text h1 {
+  margin: 0;
+  font-weight: 400;
+  letter-spacing: -.07em;
+  font-size: clamp(26px, 2.6vw, 38px);
+  line-height: .95;
+}
+.about-text > p:last-child {
+  max-width: 285px;
+  margin: 16px 0 0;
+  font-size: 11px;
+  line-height: 1.32;
+}
+
+.faq-panel { text-align: center; }
+.faq-panel .eyebrow { margin-bottom: 14px; }
+.faq-list { display: grid; gap: 4px; text-align: left; }
+.faq-item { background: var(--mist); transition: opacity 200ms ease; }
+.faq-item:hover { opacity: .7; }
+.faq-item summary {
+  min-height: 55px;
+  padding: 13px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  list-style: none;
+  font-size: 10px;
+}
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary span { font-size: 16px; font-weight: 300; }
+.faq-item[open] summary span { transform: rotate(45deg); }
+.faq-item p { margin: -2px 13px 14px; font-size: 10px; line-height: 1.3; color: #55534f; }
+
+/* mobile: about i faq to dwa osobne ekrany */
+@media (max-width: 640px) {
+  .about-layout {
+    width: 100%;
+    flex: none;
+    justify-content: flex-start;
+    gap: 0;
+    padding: 0 10vw;
+  }
+  .about-section {
+    min-height: calc(100svh - 120px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 32px 0;
+  }
+  .about-copy { grid-template-columns: 1fr; justify-items: center; gap: 28px; }
+  .about-orb { width: 127px; }
+  .about-text { text-align: center; }
+  .about-text h1 { font-size: 30px; }
+  .about-text > p:last-child { margin-inline: auto; font-size: 10px; }
+  .faq-item summary { min-height: 66px; }
+}
