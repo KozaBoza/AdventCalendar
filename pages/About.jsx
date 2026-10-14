@@ -5,8 +5,7 @@ import Icon from '../components/Icons';
 import { Footer, Logo, Toggles } from '../components/Chrome';
 import '../styles/pages.css';
 
-// Rozwijane pytanie. Wysokość animuje się przez grid-template-rows (0fr → 1fr),
-// więc odpowiedź płynnie rośnie do własnej wysokości, bez mierzenia w JS.
+
 const FaqItem = ({ question, answer }) => {
   const [open, setOpen] = useState(false);
   const uid = useId();
@@ -55,7 +54,7 @@ const About = () => {
             <div className="about-orb" aria-hidden="true" />
             <div className="about-text">
               <p className="eyebrow">{t('aboutEyebrow')}</p>
-              <h1>{t('aboutTitle1')}<br />{t('aboutTitle2')}</h1>
+              <h3>{t('aboutTitle1')}</h3>
               <p>{t('aboutBody')}</p>
             </div>
           </article>
